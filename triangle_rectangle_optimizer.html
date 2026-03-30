@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Optimiseur — Rectangle EFGH</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#F3F0E8;
+  --surface:#FFFFFF;
+  --surface2:#ECEAE0;
+  --ink:#1A1814;
+  --ink2:#5C5849;
+  --ink3:#9B9589;
+  --acc:#2A7A5C;
+  --acc-l:rgba(42,122,92,0.12);
+  --acc-b:#CCE8DC;
+  --blu:#2563A8;
+  --blu-l:rgba(37,99,168,0.12);
+  --rule:rgba(26,24,20,0.08);
+  --rule2:rgba(26,24,20,0.14);
+  --sh:0 1px 3px rgba(0,0,0,0.05),0 4px 12px rgba(0,0,0,0.04);
+  --r:10px;--rl:14px;
+  --fd:'DM Serif Display',Georgia,serif;
+  --fb:'Instrument Sans',system-ui,sans-serif;
+  --fm:'DM Mono','Courier New',monospace;
+  --topH:52px;
+  --leftW:290px;
+  /* Canvas dimensions — fixed */
+  --cvW:480px;
+  --cvH:300px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#111009;--surface:#1B1915;--surface2:#252219;
+    --ink:#EDE9DF;--ink2:#A09A8E;--ink3:#6B6660;
+    --acc:#4FB88A;--acc-l:rgba(79,184,138,0.11);--acc-b:rgba(79,184,138,0.2);
+    --blu:#6BAAD8;--blu-l:rgba(107,170,216,0.12);
+    --rule:rgba(255,255,255,0.07);--rule2:rgba(255,255,255,0.13);
+    --sh:0 1px 4px rgba(0,0,0,0.45),0 6px 18px rgba(0,0,0,0.3);
+  }
+}
+
+html,body{height:100%;-webkit-text-size-adjust:100%}
+body{
+  font-family:var(--fb);background:var(--bg);color:var(--ink);
+  -webkit-font-smoothing:antialiased;overflow:hidden;
+}
+
+/* ══════════════════════════
+   SHELL — full-viewport grid
+══════════════════════════ */
+.app{
+  display:grid;
+  grid-template-rows:var(--topH) 1fr;
+  grid-template-columns:var(--leftW) 1fr;
+  grid-template-areas:"topbar topbar" "left right";
+  height:100vh;height:100dvh;
+}
+
+/* ── Topbar ── */
+.topbar{
+  grid-area:topbar;
+  background:var(--surface);
+  border-bottom:1px solid var(--rule);
+  padding:0 1.25rem;
+  display:flex;align-items:center;gap:12px;
+  position:relative;z-index:10;
+}
+.tb-brand{
+  font-family:var(--fd);font-size:1rem;color:var(--ink);
+  white-space:nowrap;flex-shrink:0;
+}
+.tb-brand em{font-style:italic;color:var(--acc)}
+.tb-spacer{flex:1}
+.tb-tag{
+  font-family:var(--fm);font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink3);
+  background:var(--surface2);border:1px solid var(--rule2);
+  border-radius:4px;padding:3px 8px;white-space:nowrap;flex-shrink:0;
+}
+.tb-formula{
+  font-family:var(--fm);font-size:11px;color:var(--ink2);
+  background:var(--surface2);border:1px solid var(--rule);
+  border-radius:6px;padding:4px 12px;white-space:nowrap;flex-shrink:0;
+}
+
+/* ── Left panel ── */
+.left{
+  grid-area:left;
+  background:var(--surface);
+  border-right:1px solid var(--rule);
+  display:flex;flex-direction:column;
+  overflow-y:auto;overflow-x:hidden;
+}
+.left-inner{
+  display:flex;flex-direction:column;gap:.875rem;
+  padding:1.125rem 1rem;flex:1;
+}
+
+/* Section title */
+.st{
+  font-family:var(--fm);font-size:9.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink3);
+  display:flex;align-items:center;gap:8px;margin-bottom:7px;
+}
+.st::after{content:'';flex:1;height:1px;background:var(--rule)}
+
+/* Slider block */
+.sb{
+  background:var(--surface2);border:1px solid var(--rule);
+  border-radius:var(--r);padding:.875rem .875rem .75rem;
+}
+.sh{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+.sl{font-size:13px;font-weight:600;color:var(--ink)}
+.sv{
+  font-family:var(--fm);font-size:11.5px;font-weight:500;
+  color:var(--acc);background:var(--acc-b);
+  padding:2px 10px;border-radius:20px;
+}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;
+  width:100%;height:5px;border-radius:3px;outline:none;
+  cursor:pointer;margin-bottom:7px;border:none;
+  background:linear-gradient(to right,var(--acc) var(--p,49%),var(--rule2) var(--p,49%));
+}
+input[type=range]:focus{box-shadow:0 0 0 3px var(--acc-l);border-radius:3px}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:21px;height:21px;border-radius:50%;
+  background:var(--acc);border:3px solid var(--surface);
+  box-shadow:0 0 0 1.5px var(--acc),0 2px 6px rgba(0,0,0,.2);
+  cursor:grab;transition:transform .12s;
+}
+input[type=range]:active::-webkit-slider-thumb{cursor:grabbing;transform:scale(1.14)}
+input[type=range]::-moz-range-thumb{
+  width:19px;height:19px;border-radius:50%;border:3px solid var(--surface);
+  background:var(--acc);box-shadow:0 0 0 1.5px var(--acc);cursor:grab;
+}
+.rl{display:flex;justify-content:space-between}
+.rl span{font-family:var(--fm);font-size:9px;color:var(--ink3)}
+
+/* Info rows */
+.ig{display:flex;flex-direction:column;gap:5px}
+.ir{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:6px 9px;border-radius:8px;
+  background:var(--surface2);border:1px solid var(--rule);
+}
+.ir-l{color:var(--ink2);font-size:11.5px}
+.ir-v{font-family:var(--fm);font-weight:500;color:var(--ink);font-size:12px}
+.ir.ar{background:var(--acc-l);border-color:var(--acc)}
+.ir.ar .ir-v{color:var(--acc)}
+
+/* Formula block */
+.fb2{
+  background:var(--surface2);border:1px solid var(--rule);
+  border-radius:var(--r);padding:.75rem .875rem;
+  font-family:var(--fm);font-size:11.5px;color:var(--ink2);line-height:1.75;
+}
+.fb2 .dim{color:var(--ink3)}
+
+/* Banner */
+.banner{
+  display:none;background:var(--acc-l);border:1px solid var(--acc);
+  border-radius:var(--r);padding:9px 11px;
+  font-size:11.5px;line-height:1.6;color:var(--acc);
+}
+.banner.show{display:block;animation:bIn .25s ease}
+@keyframes bIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.banner strong{font-weight:600}
+
+/* Buttons */
+.bg{display:flex;flex-direction:column;gap:6px;margin-top:auto}
+.btn{
+  font-family:var(--fb);font-size:12.5px;font-weight:500;
+  border-radius:var(--r);padding:9px 14px;cursor:pointer;
+  border:1px solid var(--rule2);background:var(--surface);color:var(--ink);
+  box-shadow:var(--sh);transition:all .14s;
+  display:flex;align-items:center;justify-content:center;gap:6px;width:100%;
+}
+.btn:hover{background:var(--surface2)}
+.btn:active{transform:scale(.98)}
+.btn-p{background:var(--acc);color:#fff;border-color:var(--acc);
+  box-shadow:0 2px 8px rgba(42,122,92,.22)}
+.btn-p:hover{filter:brightness(1.07);color:#fff}
+
+/* ── Right panel ── */
+.right{
+  grid-area:right;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:1.25rem;gap:1rem;
+  overflow:auto;
+}
+
+/* Metric cards */
+.metrics{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;width:100%;max-width:var(--cvW);
+}
+.card{
+  background:var(--surface);border:1px solid var(--rule);
+  border-radius:var(--r);padding:.7rem .875rem;box-shadow:var(--sh);
+}
+.card.acc{border-color:var(--acc);background:var(--acc-l)}
+.clbl{
+  font-family:var(--fm);font-size:9px;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--ink3);margin-bottom:4px;
+}
+.cval{
+  font-family:var(--fm);font-size:1.15rem;font-weight:500;
+  color:var(--ink);line-height:1;
+}
+.card.acc .cval{color:var(--acc)}
+
+/* Canvas card — fixed size, never stretches */
+.cc{
+  background:var(--surface);border:1px solid var(--rule);
+  border-radius:var(--rl);padding:1rem;box-shadow:var(--sh);
+  position:relative;overflow:hidden;
+  /* Fixed interior that matches canvas */
+  width:calc(var(--cvW) + 2rem);
+  flex-shrink:0;
+}
+.cc::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 70% 50% at 50% 0%,var(--acc-l),transparent 65%);
+}
+/* Canvas: fixed logical size, sharp on HiDPI */
+#cv{
+  display:block;
+  width:var(--cvW);
+  height:var(--cvH);
+}
+.foot{
+  font-family:var(--fm);font-size:9.5px;color:var(--ink3);
+  text-align:center;margin-top:8px;
+}
+
+/* ══════════════════════════
+   RESPONSIVE BREAKPOINTS
+══════════════════════════ */
+
+/* Large tablet — tighten left column */
+@media(max-width:900px){
+  :root{--leftW:260px;--cvW:400px;--cvH:250px}
+  .tb-formula{display:none}
+}
+
+/* Small tablet — further compress */
+@media(max-width:720px){
+  :root{--leftW:230px;--cvW:340px;--cvH:215px}
+  .tb-tag{display:none}
+  .tb-formula{display:none}
+}
+
+/* Mobile — full vertical stack, body scrolls */
+@media(max-width:580px){
+  body{overflow:auto}
+  .app{
+    height:auto;min-height:100dvh;
+    grid-template-columns:1fr;
+    grid-template-rows:var(--topH) auto auto;
+    grid-template-areas:"topbar" "left" "right";
+  }
+  .left{height:auto;overflow:visible;border-right:none;border-bottom:1px solid var(--rule)}
+  .left-inner{padding:.875rem}
+  .bg{flex-direction:row}
+  .btn{width:auto;flex:1}
+  .right{
+    align-items:center;justify-content:flex-start;
+    padding:1rem;
+  }
+  :root{--cvW:calc(100vw - 2rem - 2px);--cvH:220px}
+  .cc{width:calc(var(--cvW) + 2rem)}
+  .metrics{max-width:none}
+  .tb-brand{font-size:.875rem}
+}
+
+@media(max-width:360px){
+  :root{--cvH:190px}
+  .cval{font-size:1rem}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="tb-brand">Rectangle <em>EFGH</em> — Surface maximale</div>
+    <div class="tb-spacer"></div>
+    <span class="tb-tag">TP2 · Optimisation</span>
+    <div class="tb-formula">S(x) = √3 · (100 − 2x) · x</div>
+  </header>
+
+  <!-- Left: Configuration -->
+  <aside class="left">
+    <div class="left-inner">
+
+      <div>
+        <div class="st">Paramètre</div>
+        <div class="sb">
+          <div class="sh">
+            <span class="sl">Valeur de x</span>
+            <span class="sv" id="disp-x">25.0 m</span>
+          </div>
+          <input type="range" id="slider-x" min="1" max="49" value="25" step="0.5"
+                 aria-label="Valeur de x">
+          <div class="rl">
+            <span>x → 0</span>
+            <span>x<sub>opt</sub> = 25 m ⭐</span>
+            <span>x → 50</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="st">Dimensions</div>
+        <div class="ig">
+          <div class="ir">
+            <span class="ir-l">Côté ABC</span>
+            <span class="ir-v">100 m</span>
+          </div>
+          <div class="ir">
+            <span class="ir-l">x = AE = BF</span>
+            <span class="ir-v" id="iv-x">25.0 m</span>
+          </div>
+          <div class="ir">
+            <span class="ir-l">Largeur EF</span>
+            <span class="ir-v" id="iv-ef">50.0 m</span>
+          </div>
+          <div class="ir">
+            <span class="ir-l">Hauteur GE</span>
+            <span class="ir-v" id="iv-h">43.3 m</span>
+          </div>
+          <div class="ir ar">
+            <span class="ir-l">Surface S(x)</span>
+            <span class="ir-v" id="iv-s">2165 m²</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="st">Formule</div>
+        <div class="fb2">
+          S(x) = √3 · (100 − 2x) · x<br>
+          <span class="dim">S'(x) = √3 · (100 − 4x)</span><br>
+          <span class="dim">S'(x) = 0 ⟹ x = 25 m</span>
+        </div>
+      </div>
+
+      <div class="banner" id="banner">
+        <strong>Optimum : x = 25 m</strong> (= 100 ÷ 4)<br>
+        EF = <strong>50 m</strong> &nbsp;·&nbsp; GE ≈ <strong>43.3 m</strong><br>
+        → <strong>S<sub>max</sub> ≈ 2165 m²</strong>
+      </div>
+
+      <div class="bg">
+        <button class="btn btn-p" onclick="setOptimal()">⭐ Optimal</button>
+        <button class="btn" onclick="resetSlider()">↺ Réinitialiser</button>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- Right: Metrics + Canvas -->
+  <main class="right">
+
+    <div class="metrics">
+      <div class="card">
+        <div class="clbl">x = AE = BF</div>
+        <div class="cval" id="sv-x">25.0 m</div>
+      </div>
+      <div class="card">
+        <div class="clbl">Largeur EF</div>
+        <div class="cval" id="sv-ef">50.0 m</div>
+      </div>
+      <div class="card acc">
+        <div class="clbl">Surface S(x)</div>
+        <div class="cval" id="sv-s">2165 m²</div>
+      </div>
+    </div>
+
+    <div class="cc">
+      <canvas id="cv"></canvas>
+      <p class="foot">S(x) = √3·(100−2x)·x &nbsp;|&nbsp; x ∈ ]0, 50[ &nbsp;|&nbsp; AE = BF par symétrie</p>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const cv  = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const slider = document.getElementById('slider-x');
+const SIDE = 100;
+let bTimer = null;
+
+const els = {
+  dispX : document.getElementById('disp-x'),
+  svX   : document.getElementById('sv-x'),
+  svEF  : document.getElementById('sv-ef'),
+  svS   : document.getElementById('sv-s'),
+  ivX   : document.getElementById('iv-x'),
+  ivEF  : document.getElementById('iv-ef'),
+  ivH   : document.getElementById('iv-h'),
+  ivS   : document.getElementById('iv-s'),
+  banner: document.getElementById('banner'),
+};
+
+function S(x){ return Math.sqrt(3)*(SIDE-2*x)*x; }
+function Hx(x){ return (x/(SIDE/2))*(Math.sqrt(3)/2)*SIDE; }
+function dark(){ return window.matchMedia('(prefers-color-scheme:dark)').matches; }
+
+/* ─── Canvas: fixed logical size read from CSS vars ─── */
+function getCanvasSize(){
+  const s = getComputedStyle(document.documentElement);
+  // Parse pixel value from CSS variable, fallback to default
+  const w = parseInt(s.getPropertyValue('--cvW')) || cv.offsetWidth  || 480;
+  const h = parseInt(s.getPropertyValue('--cvH')) || cv.offsetHeight || 300;
+  return { w: w || 480, h: h || 300 };
+}
+
+function setupCanvas(){
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  // Read the rendered CSS width/height (set via CSS vars)
+  const cw = cv.offsetWidth  || 480;
+  const ch = cv.offsetHeight || 300;
+  cv.width  = cw * dpr;
+  cv.height = ch * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { W: cw, H: ch };
+}
+
+function draw(x){
+  const { W, H } = setupCanvas();
+  const dk = dark();
+  ctx.clearRect(0,0,W,H);
+
+  const ink  = dk?'#EDE9DF':'#1A1814';
+  const ink2 = dk?'#A09A8E':'#5C5849';
+  const ink3 = dk?'#6B6660':'#9B9589';
+  const acc  = dk?'#4FB88A':'#2A7A5C';
+  const aFil = dk?'rgba(79,184,138,0.17)':'rgba(42,122,92,0.13)';
+  const blu  = dk?'#6BAAD8':'#2563A8';
+  const bFil = dk?'rgba(107,170,216,0.15)':'rgba(37,99,168,0.12)';
+  const triC = dk?'#4A4640':'#C2BBB3';
+  const grid = dk?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.032)';
+
+  const triH = (Math.sqrt(3)/2)*SIDE;
+  const SPARK=26, padT=18, padB=SPARK+26, padS=28;
+  const dW=W-padS*2, dH=H-padT-padB;
+  const sc = Math.min(dW/SIDE, dH/triH);
+  const bw=SIDE*sc, bh=triH*sc;
+  const Ax=(W-bw)/2, Ay=H-padB;
+  const Bx=Ax+bw, Cx=Ax+bw/2, Cy=Ay-bh;
+  const Ex=Ax+x*sc, Fx=Bx-x*sc;
+  const rH=(x/(SIDE/2))*bh, Gy=Ay-rH;
+  const optX=SIDE/4, near=Math.abs(x-optX)<0.9;
+  const col=near?acc:blu, fill=near?aFil:bFil;
+
+  // Grid
+  ctx.strokeStyle=grid; ctx.lineWidth=1;
+  for(let i=0;i<=SIDE;i+=10){
+    const px=Ax+i*sc;
+    ctx.beginPath();ctx.moveTo(px,Cy);ctx.lineTo(px,Ay);ctx.stroke();
+  }
+
+  // Triangle faint fill
+  ctx.beginPath();ctx.moveTo(Ax,Ay);ctx.lineTo(Cx,Cy);ctx.lineTo(Bx,Ay);ctx.closePath();
+  ctx.fillStyle=dk?'rgba(255,255,255,0.012)':'rgba(0,0,0,0.016)'; ctx.fill();
+
+  // Ghost optimal
+  if(!near){
+    const oEx=Ax+optX*sc, oFx=Bx-optX*sc, oH2=(optX/(SIDE/2))*bh;
+    ctx.save(); ctx.setLineDash([4,4]);
+    ctx.strokeStyle=acc+'55'; ctx.lineWidth=1.5;
+    ctx.strokeRect(oEx,Ay-oH2,oFx-oEx,oH2);
+    ctx.restore();
+    ctx.font=`9px 'DM Mono',monospace`;
+    ctx.fillStyle=acc+'55'; ctx.textAlign='center';
+    ctx.fillText('optimal',(oEx+oFx)/2,Ay-oH2-5);
+  }
+
+  // Rectangle
+  ctx.fillStyle=fill; ctx.fillRect(Ex,Gy,Fx-Ex,Ay-Gy);
+  ctx.strokeStyle=col+'38'; ctx.lineWidth=5; ctx.strokeRect(Ex,Gy,Fx-Ex,Ay-Gy);
+  ctx.strokeStyle=col;      ctx.lineWidth=2; ctx.strokeRect(Ex,Gy,Fx-Ex,Ay-Gy);
+
+  // Corner L-marks
+  const cm=7; ctx.strokeStyle=col; ctx.lineWidth=2.5;
+  [[Ex,Gy,1,1],[Fx,Gy,-1,1],[Ex,Ay,1,-1],[Fx,Ay,-1,-1]].forEach(([px,py,dx,dy])=>{
+    ctx.beginPath();ctx.moveTo(px+dx*cm,py);ctx.lineTo(px,py);ctx.lineTo(px,py+dy*cm);ctx.stroke();
+  });
+
+  // Triangle outline
+  ctx.beginPath();ctx.moveTo(Ax,Ay);ctx.lineTo(Cx,Cy);ctx.lineTo(Bx,Ay);ctx.closePath();
+  ctx.strokeStyle=triC; ctx.lineWidth=1.5; ctx.stroke();
+
+  // x dimension arrow
+  const dimY=Ay+15;
+  function arr(x1,y1,x2,y2,c){
+    ctx.strokeStyle=c; ctx.fillStyle=c; ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+    const a=Math.atan2(y2-y1,x2-x1),s=5;
+    ctx.beginPath();ctx.moveTo(x2,y2);
+    ctx.lineTo(x2-s*Math.cos(a-.5),y2-s*Math.sin(a-.5));
+    ctx.lineTo(x2-s*Math.cos(a+.5),y2-s*Math.sin(a+.5));
+    ctx.closePath();ctx.fill();
+  }
+  if(Ex-Ax>26){
+    arr(Ax+3,dimY,Ex-3,dimY,ink3); arr(Ex-3,dimY,Ax+3,dimY,ink3);
+    ctx.font=`10px 'DM Mono',monospace`; ctx.fillStyle=ink3; ctx.textAlign='center';
+    ctx.fillText('x',(Ax+Ex)/2,dimY-5);
+  }
+
+  // Vertex labels
+  const ls=Math.max(10,Math.min(13,W/50));
+  ctx.font=`italic ${ls}px 'DM Serif Display',serif`;
+  ctx.fillStyle=ink2; ctx.textAlign='center';
+  ctx.fillText('A',Ax-11,Ay+16); ctx.fillText('B',Bx+11,Ay+16); ctx.fillText('C',Cx,Cy-10);
+  ctx.fillStyle=col;
+  ctx.fillText('E',Ex,Ay+16); ctx.fillText('F',Fx,Ay+16);
+  ctx.fillText('G',Ex-11,Gy-7); ctx.fillText('H',Fx+11,Gy-7);
+
+  // Inside labels
+  const area=Math.round(S(x)), ef=(SIDE-2*x).toFixed(1);
+  if(rH>44){
+    const mx=(Ex+Fx)/2, my=Gy+rH/2;
+    ctx.textAlign='center';
+    if(rH>68){
+      ctx.font=`9.5px 'DM Mono',monospace`; ctx.fillStyle=col+'88';
+      ctx.fillText(`EF = ${ef} m`,mx,my-9);
+      ctx.font=`500 11px 'DM Mono',monospace`; ctx.fillStyle=col;
+      ctx.fillText(`S = ${area} m²`,mx,my+9);
+    } else {
+      ctx.font=`500 10.5px 'DM Mono',monospace`; ctx.fillStyle=col;
+      ctx.fillText(`S = ${area} m²`,mx,my+5);
+    }
+  }
+
+  // Sparkline
+  const spY=H-8, spH2=SPARK-8, maxS=S(optX);
+  ctx.beginPath();
+  ctx.moveTo(Ax+(1/SIDE)*bw,spY);
+  for(let xi=1;xi<SIDE;xi++) ctx.lineTo(Ax+(xi/SIDE)*bw, spY-(S(xi)/maxS)*spH2);
+  ctx.lineTo(Ax+((SIDE-1)/SIDE)*bw,spY); ctx.closePath();
+  ctx.fillStyle=acc+'11'; ctx.fill();
+  ctx.beginPath();
+  for(let xi=1;xi<SIDE;xi++){
+    const px=Ax+(xi/SIDE)*bw, py=spY-(S(xi)/maxS)*spH2;
+    xi===1?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  }
+  ctx.strokeStyle=acc+'55'; ctx.lineWidth=1.5; ctx.stroke();
+  // dot
+  const cpx=Ax+(x/SIDE)*bw, cpy=spY-(S(x)/maxS)*spH2;
+  ctx.beginPath(); ctx.arc(cpx,cpy,4,0,Math.PI*2);
+  ctx.fillStyle=col; ctx.fill();
+  ctx.strokeStyle=dk?'#1B1915':'#fff'; ctx.lineWidth=2; ctx.stroke();
+  // label
+  ctx.font=`9px 'DM Mono',monospace`; ctx.fillStyle=ink3; ctx.textAlign='left';
+  ctx.fillText('S(x)',Ax,spY-spH2-4);
+}
+
+function update(){
+  const x = parseFloat(slider.value);
+  const ef = SIDE-2*x, area = S(x), hv = Hx(x);
+  // slider track fill
+  slider.style.setProperty('--p', ((x-1)/48*100).toFixed(1)+'%');
+  // left
+  els.dispX.textContent = x.toFixed(1)+' m';
+  els.ivX.textContent   = x.toFixed(1)+' m';
+  els.ivEF.textContent  = ef.toFixed(1)+' m';
+  els.ivH.textContent   = hv.toFixed(1)+' m';
+  els.ivS.textContent   = Math.round(area)+' m²';
+  // right
+  els.svX.textContent   = x.toFixed(1)+' m';
+  els.svEF.textContent  = ef.toFixed(1)+' m';
+  els.svS.textContent   = Math.round(area)+' m²';
+  draw(x);
+}
+
+function setOptimal(){
+  slider.value = SIDE/4;
+  els.banner.classList.add('show');
+  clearTimeout(bTimer);
+  bTimer = setTimeout(()=>els.banner.classList.remove('show'), 6000);
+  update();
+}
+function resetSlider(){
+  slider.value = 25;
+  els.banner.classList.remove('show');
+  clearTimeout(bTimer);
+  update();
+}
+
+slider.addEventListener('input', ()=>{ els.banner.classList.remove('show'); clearTimeout(bTimer); update(); });
+
+// On resize: just redraw — canvas CSS size changes via media queries,
+// offsetWidth/Height will reflect the new CSS var values.
+let rTimer;
+window.addEventListener('resize', ()=>{ clearTimeout(rTimer); rTimer=setTimeout(update, 80); });
+window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', update);
+
+// Initial draw after fonts load (for crisp text)
+document.fonts.ready.then(update).catch(update);
+update();
+</script>
+</body>
+</html>
