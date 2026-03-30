@@ -2,6 +2,7 @@
 
 > Application web interactive pour visualiser et optimiser la surface d'un rectangle inscrit dans un triangle équilatéral —
 > **TP2 Optimisation** (Terminale / CPGE).
+> Simulation :https://aminefr85.github.io/surface-optimizer/
 
 ![Aperçu de l'application](preview.png)
 
@@ -12,7 +13,7 @@
 Une personne possède un terrain en forme de **triangle équilatéral ABC de 100 m de côté**. On souhaite y construire une maison rectangulaire **EFGH** dont la façade repose sur le côté [AB], de sorte que sa surface soit **maximale**.
 
 **Problème :** Trouver la valeur de `x = AE = BF` qui maximise l'aire du rectangle EFGH.
-
+> Simulation :https://aminefr85.github.io/surface-optimizer/
 ### Formule de la surface
 
 ```
