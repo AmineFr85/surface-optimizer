@@ -82,7 +82,7 @@ Aucune dépendance, aucun serveur requis. Ouvrir directement dans le navigateur 
 
 ```bash
 # Cloner le dépôt
-git clone https://github.com/votre-utilisateur/triangle-rectangle-optimizer.git
+git clone https://github.com/AmineFr85/surface-optimizer.git
 cd triangle-rectangle-optimizer
 
 # Ouvrir dans le navigateur
