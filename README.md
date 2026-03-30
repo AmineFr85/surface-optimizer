@@ -1,7 +1,9 @@
 # 📐 Optimiseur — Rectangle EFGH de surface maximale
 
 > Application web interactive pour visualiser et optimiser la surface d'un rectangle inscrit dans un triangle équilatéral —
+
 > **TP2 Optimisation** (Terminale / CPGE).
+
 > Simulation :https://aminefr85.github.io/surface-optimizer/
 
 ![Aperçu de l'application](preview.png)
